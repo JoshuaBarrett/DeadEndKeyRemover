@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Versioning;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace DeadEndKeyRemover
@@ -63,12 +64,30 @@ namespace DeadEndKeyRemover
                     throw new NullReferenceException("Sub Registry is Null");
                 }
 
-                string uninstallFilePath = (string)(subRegKey.GetValue("UninstallString") ?? string.Empty);
-                if (string.IsNullOrEmpty(uninstallFilePath) || !File.Exists(uninstallFilePath))
+                string uninstallStringUnclean = (string) (subRegKey.GetValue("UninstallString") ?? string.Empty);
+                string uninstallString = CleanUninstallString(uninstallStringUnclean);
+
+                if (string.IsNullOrEmpty(uninstallString) || !File.Exists(uninstallString))
                 {
                     yield return keyName;
                 }                
             }            
+        }
+
+        private string CleanUninstallString(string uncleanString)
+        {
+            string filePathStartPattern = @"^[a-zA-Z]:\\";
+            string quoteExtractionRegex = "\"([^\\\"]*)\"";
+
+            if (Regex.IsMatch(uncleanString, filePathStartPattern))
+            {
+                //String is already clean
+                return uncleanString;
+            }
+
+            var matches = Regex.Match(uncleanString, quoteExtractionRegex);
+            string cleanedString = matches.Groups[1].Value;
+            return cleanedString;
         }
     }
 }
